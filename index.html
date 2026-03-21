@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tanz-Tracker</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text: #1F2937;
+            --border: #E5E7EB;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .app-container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .nav {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav button {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6B7280;
+            cursor: pointer;
+        }
+        .nav button.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+        .view {
+            padding: 20px;
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        h2 { margin-top: 0; }
+        
+        /* Eintragen View */
+        .date-selector {
+            margin-bottom: 20px;
+        }
+        input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .times-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .time-btn {
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: transparent;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .time-btn.selected {
+            border-color: var(--primary);
+            background-color: #EEF2FF;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .save-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .save-btn:hover { background-color: var(--primary-hover); }
+        .save-btn:disabled { background-color: #9CA3AF; cursor: not-allowed; }
+        
+        /* Kalender View */
+        .calendar-month {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .day-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #6B7280;
+            padding-bottom: 5px;
+        }
+        .calendar-cell {
+            aspect-ratio: 1;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            position: relative;
+        }
+        .calendar-cell.has-dance {
+            background-color: #EEF2FF;
+            border-color: var(--primary);
+            color: var(--primary);
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .dance-count {
+            font-size: 10px;
+            background-color: var(--primary);
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+        }
+        #status-msg {
+            margin-top: 10px;
+            text-align: center;
+            color: #059669;
+            font-weight: bold;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="nav">
+        <button id="nav-eintragen" class="active">Zeiten Eintragen</button>
+        <button id="nav-kalender">Mein Kalender</button>
+    </div>
+
+    <div id="view-eintragen" class="view active">
+        <h2>Wann warst du tanzen?</h2>
+        
+        <div class="date-selector">
+            <label for="date-input" style="display:block; margin-bottom:5px; color:#6B7280; font-size:14px;">Datum (Standard ist heute):</label>
+            <input type="date" id="date-input">
+        </div>
+
+        <div id="times-container" class="times-grid">
+            </div>
+
+        <button id="save-btn" class="save-btn" disabled>Zeiten Speichern</button>
+        <div id="status-msg"></div>
+    </div>
+
+    <div id="view-kalender" class="view">
+        <div class="calendar-month" id="calendar-month-label">März 2026</div>
+        <div class="calendar-grid" id="calendar-grid">
+            </div>
+        <div id="calendar-details" style="margin-top: 20px; padding: 10px; background: #F9FAFB; border-radius: 8px; display: none;">
+            <h4 id="detail-date" style="margin-top:0;"></h4>
+            <ul id="detail-times" style="margin-bottom:0;"></ul>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // ==========================================
+    // DEINE FIREBASE CONFIG HIER EINTRAGEN
+    // ==========================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBe3-PKYw76lcQ3RFoy7pQivl-6NtuIniI",
+      authDomain: "tanzkalender-e329d.firebaseapp.com",
+      projectId: "tanzkalender-e329d",
+      storageBucket: "tanzkalender-e329d.firebasestorage.app",
+      messagingSenderId: "539481767816",
+      appId: "1:539481767816:web:ba4782fa8a0c5346ec843d",
+      measurementId: "G-R2LDY6SWDZ"
+    };
+
+    // Firebase initialisieren
+    let app, db;
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+    } catch (e) {
+        console.error("Firebase Config fehlt oder ist fehlerhaft:", e);
+    }
+
+    // --- Logik für Zeiten ---
+    const timesNormal = ["14:45", "16:00", "17:15", "18:30", "19:45", "21:00"];
+    const timesSunday = ["14:15", "15:30", "16:45", "18:00", "19:15", "20:30"];
+    let selectedTimes = new Set();
+
+    // DOM Elemente
+    const dateInput = document.getElementById('date-input');
+    const timesContainer = document.getElementById('times-container');
+    const saveBtn = document.getElementById('save-btn');
+    const statusMsg = document.getElementById('status-msg');
+
+    // --- Initialisierung ---
+    function init() {
+        // Setze Datum auf heute (Berücksichtigt lokale Zeitzone)
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateInput.value = `${yyyy}-${mm}-${dd}`;
+
+        renderTimeButtons();
+    }
+
+    // --- UI Aktualisieren (Eintragen) ---
+    function renderTimeButtons() {
+        timesContainer.innerHTML = '';
+        selectedTimes.clear();
+        updateSaveButton();
+
+        const selectedDate = new Date(dateInput.value);
+        // getDay(): 0 ist Sonntag
+        const isSunday = selectedDate.getDay() === 0;
+        const currentTimes = isSunday ? timesSunday : timesNormal;
+
+        currentTimes.forEach(time => {
+            const btn = document.createElement('button');
+            btn.className = 'time-btn';
+            btn.textContent = time;
+            btn.onclick = () => toggleTime(time, btn);
+            timesContainer.appendChild(btn);
+        });
+    }
+
+    function toggleTime(time, btnElement) {
+        if (selectedTimes.has(time)) {
+            selectedTimes.delete(time);
+            btnElement.classList.remove('selected');
+        } else {
+            selectedTimes.add(time);
+            btnElement.classList.add('selected');
+        }
+        updateSaveButton();
+    }
+
+    function updateSaveButton() {
+        saveBtn.disabled = selectedTimes.size === 0;
+    }
+
+    // Wenn sich das Datum ändert, neue Zeiten laden
+    dateInput.addEventListener('change', renderTimeButtons);
+
+    // --- Speichern in Firestore ---
+    saveBtn.addEventListener('click', async () => {
+        if (!db) {
+            alert("Bitte trage zuerst deine Firebase Config in den Code ein!");
+            return;
+        }
+        
+        const dateStr = dateInput.value;
+        const timesArray = Array.from(selectedTimes);
+        
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Speichere...";
+
+        try {
+            // Wir speichern ein Dokument pro Tag. Die ID ist das Datum (z.B. "2026-03-21")
+            const docRef = doc(db, "danceSessions", dateStr);
+            await setDoc(docRef, {
+                date: dateStr,
+                times: timesArray
+            }, { merge: true }); // merge: true überschreibt nicht bestehende Einträge des Tages, falls man das später anpassen will
+
+            statusMsg.textContent = "Erfolgreich gespeichert!";
+            setTimeout(() => { statusMsg.textContent = ""; }, 3000);
+            
+            // Buttons zurücksetzen
+            renderTimeButtons();
+        } catch (e) {
+            console.error("Fehler beim Speichern:", e);
+            alert("Fehler beim Speichern. Hast du die Firestore-Regeln auf Testmodus gestellt?");
+        } finally {
+            saveBtn.textContent = "Zeiten Speichern";
+        }
+    });
+
+    // --- Navigation ---
+    document.getElementById('nav-eintragen').addEventListener('click', (e) => switchTab('eintragen', e.target));
+    document.getElementById('nav-kalender').addEventListener('click', (e) => switchTab('kalender', e.target));
+
+    function switchTab(tabId, btnElement) {
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        
+        btnElement.classList.add('active');
+        document.getElementById(`view-${tabId}`).classList.add('active');
+
+        if (tabId === 'kalender') {
+            loadCalendar();
+        }
+    }
+
+    // --- Kalender Logik ---
+    async function loadCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        grid.innerHTML = 'Lade Daten...';
+        document.getElementById('calendar-details').style.display = 'none';
+
+        if (!db) {
+            grid.innerHTML = 'Keine Firebase Config gefunden.';
+            return;
+        }
+
+        // 1. Daten aus Firestore holen
+        const sessionsData = {};
+        try {
+            const querySnapshot = await getDocs(collection(db, "danceSessions"));
+            querySnapshot.forEach((doc) => {
+                sessionsData[doc.id] = doc.data().times;
+            });
+        } catch (e) {
+            grid.innerHTML = 'Fehler beim Laden der Daten.';
+            return;
+        }
+
+        // 2. Kalender für den aktuellen Monat aufbauen
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth(); // 0-11
+        
+        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        document.getElementById('calendar-month-label').textContent = `${monthNames[month]} ${year}`;
+
+        grid.innerHTML = '';
+        
+        // Wochentage Kopfzeile (Mo-So)
+        const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+        days.forEach(d => {
+            const div = document.createElement('div');
+            div.className = 'day-header';
+            div.textContent = d;
+            grid.appendChild(div);
+        });
+
+        // Erster Tag des Monats (0 = Sonntag, daher anpassen für Montag als Start)
+        let firstDay = new Date(year, month, 1).getDay();
+        firstDay = firstDay === 0 ? 6 : firstDay - 1; 
+
+        // Anzahl der Tage im Monat
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        // Leere Zellen am Anfang
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            grid.appendChild(emptyCell);
+        }
+
+        // Tage generieren
+        for (let i = 1; i <= daysInMonth; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            cell.textContent = i;
+
+            // Format YYYY-MM-DD für den Abgleich mit der Datenbank
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+            if (sessionsData[dateStr] && sessionsData[dateStr].length > 0) {
+                cell.classList.add('has-dance');
+                
+                const badge = document.createElement('div');
+                badge.className = 'dance-count';
+                badge.textContent = sessionsData[dateStr].length;
+                cell.appendChild(badge);
+
+                // Klick auf einen Tag mit Kursen zeigt Details
+                cell.onclick = () => showDetails(dateStr, sessionsData[dateStr]);
+            }
+
+            grid.appendChild(cell);
+        }
+    }
+
+    function showDetails(dateStr, times) {
+        const detailsBox = document.getElementById('calendar-details');
+        const title = document.getElementById('detail-date');
+        const list = document.getElementById('detail-times');
+        
+        // Datum schön formatieren
+        const dateObj = new Date(dateStr);
+        title.textContent = `Getanzt am: ${dateObj.toLocaleDateString('de-DE')}`;
+        
+        list.innerHTML = '';
+        times.sort().forEach(time => {
+            const li = document.createElement('li');
+            li.textContent = time + " Uhr";
+            list.appendChild(li);
+        });
+        
+        detailsBox.style.display = 'block';
+    }
+
+    // Start
+    init();
+
+</script>
+</body>
+</html>
