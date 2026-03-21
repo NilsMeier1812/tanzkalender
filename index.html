@@ -52,11 +52,6 @@
         }
         .time-btn:hover { border-color: #A5B4FC; }
         .time-btn.selected { border-color: var(--primary); background-color: #EEF2FF; color: var(--primary); font-weight: bold; }
-        
-        /* Spezieller Look für den Party-Button */
-        .time-btn.party-btn { border-color: #ec4899; color: #ec4899; }
-        .time-btn.party-btn:hover { background-color: #fdf2f8; }
-        .time-btn.party-btn.selected { background-color: #ec4899; color: white; }
 
         .save-btn {
             width: 100%; padding: 15px; background-color: var(--primary); color: white;
@@ -167,10 +162,8 @@
         const isSaturday = dayOfWeek === 6;
         const isWeekend = isSunday || isSaturday;
 
-        // Zeiten kopieren (damit das Original-Array nicht verändert wird)
         let currentTimes = isSunday ? [...timesSunday] : [...timesNormal];
         
-        // Am Wochenende "Party" zum Array hinzufügen
         if (isWeekend) {
             currentTimes.push("Party");
         }
@@ -192,7 +185,6 @@
         currentTimes.forEach(time => {
             const btn = document.createElement('button');
             btn.className = 'time-btn';
-            if (time === "Party") btn.classList.add('party-btn'); // Extra Style für Party
             
             if (selectedTimes.has(time)) btn.classList.add('selected');
             
@@ -294,7 +286,6 @@
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
             if (sessionsData[dateStr] && sessionsData[dateStr].length > 0) {
-                // NEUE ZÄHL-LOGIK: Party zählt doppelt!
                 let dailyCount = 0;
                 sessionsData[dateStr].forEach(time => {
                     if (time === "Party") {
@@ -308,7 +299,7 @@
                     cell.classList.add('has-dance');
                     const badge = document.createElement('div');
                     badge.className = 'dance-count';
-                    badge.textContent = dailyCount; // Zeigt nun z.B. 3 an bei 18:30 + Party
+                    badge.textContent = dailyCount;
                     cell.appendChild(badge);
                     cell.onclick = () => showDetails(dateStr, sessionsData[dateStr]);
                 }
@@ -328,7 +319,6 @@
         
         list.innerHTML = '';
         
-        // Sortieren, damit Uhrzeiten vor der Party stehen
         times.sort().forEach(time => {
             const li = document.createElement('li');
             if (time === "Party") {
