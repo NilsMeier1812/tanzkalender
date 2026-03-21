@@ -1,0 +1,27 @@
+{
+  "name": "tanz-tracker",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
+
+#### 2. Die Werte in Vercel anlegen
+Gehe in deinem Vercel-Projekt auf **Settings** -> **Environment Variables**. Lege exakt diese zwei Variablen an:
+
+* **Variable 1**
+    * **Key:** `API_SECRET`
+    * **Value:** `Geheim123` *(oder ein anderes Passwort deiner Wahl, ohne Leerzeichen)*
+* **Variable 2**
+    * **Key:** `FIREBASE_SERVICE_ACCOUNT`
+    * **Value:** Hier brauchst du die JSON-Datei aus Firebase. Gehe in Firebase auf **Projekteinstellungen -> Dienstkonten (Service Accounts) -> Neuen privaten Schlüssel generieren**. Öffne die heruntergeladene Datei mit einem einfachen Texteditor (auf Windows z.B. "Editor" oder "Notepad", nicht Word!). Markiere **alles** von der ersten `{` bis zur letzten `}` und füge es als Value in Vercel ein.
+
+> **Wichtig:** Wenn du in Vercel Umgebungsvariablen änderst, musst du dein Projekt unter dem Reiter "Deployments" einmal neu "Redeployen" (oder einfach per Git neu hochladen), damit Vercel die neuen Werte lädt.
+
+#### 3. Die korrekte URL für deine Shortcuts
+Wenn deine Vercel-App z.B. `tanz-app.vercel.app` heißt, dann muss die URL in der Shortcut-App exakt so aussehen:
+
+`https://tanz-app.vercel.app/api/track?slot=16&secret=Geheim123`
+
+*(Ersetze `tanz-app.vercel.app` mit deiner echten URL, `16` mit der jeweiligen Stunde und `Geheim123` mit deinem gewählten Passwort).*
+
+Probier den Link am besten einmal ganz normal in deinem Handy-Browser oder am PC aus. Wenn eine Rückmeldung wie `{"success": true, ...}` oder zumindest eine saubere `{"error": "..."}` Meldung kommt, wissen wir sofort, woran wir sind!
