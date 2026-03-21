@@ -1,18 +1,23 @@
 import admin from 'firebase-admin';
 
-if (!admin.apps.length) {
+export default async function handler(req, res) {
+    // Firebase sicher initialisieren (innerhalb des Handlers, um Vercel-Crashes zu verhindern)
     try {
-        admin.initializeApp({
-            credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
-        });
+        if (!admin.apps.length) {
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+            admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+        }
     } catch (error) {
         console.error('Firebase Admin Init Error:', error);
+        return res.status(500).json({ 
+            error: 'Firebase Setup Fehler. Bitte prüfe in Vercel, ob FIREBASE_SERVICE_ACCOUNT korrektes JSON ist.' 
+        });
     }
-}
 
-const db = admin.firestore();
+    const db = admin.firestore();
 
-export default async function handler(req, res) {
     // Wir fragen nur noch den Slot ab, kein Secret mehr
     const { slot } = req.query;
 
