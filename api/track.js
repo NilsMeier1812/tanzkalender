@@ -1,30 +1,43 @@
 import admin from 'firebase-admin';
 
 export default async function handler(req, res) {
-    // Firebase sicher initialisieren (innerhalb des Handlers, um Vercel-Crashes zu verhindern)
+    // --- 1. SAK (Secret & Slot) ÜBERPRÜFEN ---
+    const { slot, secret } = req.query;
+
+    if (secret !== process.env.API_SECRET) {
+        return res.status(401).json({ error: 'Falsches oder fehlendes Passwort (secret)' });
+    }
+
+    if (!slot) {
+        return res.status(400).json({ error: 'Slot fehlt in der URL' });
+    }
+
+    // --- 2. FIREBASE INITIALISIEREN (Mit genauer Fehleranalyse) ---
     try {
         if (!admin.apps.length) {
-            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+            const rawJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+            if (!rawJson) {
+                return res.status(500).json({ error: 'Die Vercel-Variable FIREBASE_SERVICE_ACCOUNT existiert nicht oder ist leer.' });
+            }
+            
+            // Hier passiert der häufigste Fehler: Das Parsen des Textes zu einem JSON-Objekt
+            const serviceAccount = JSON.parse(rawJson);
+            
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
             });
         }
     } catch (error) {
-        console.error('Firebase Admin Init Error:', error);
+        console.error('Firebase Setup Error:', error);
         return res.status(500).json({ 
-            error: 'Firebase Setup Fehler. Bitte prüfe in Vercel, ob FIREBASE_SERVICE_ACCOUNT korrektes JSON ist.' 
+            error: 'Firebase konnte nicht gestartet werden. Sehr wahrscheinlich ist das JSON-Format in Vercel fehlerhaft.',
+            details: error.message 
         });
     }
 
     const db = admin.firestore();
 
-    // Wir fragen nur noch den Slot ab, kein Secret mehr
-    const { slot } = req.query;
-
-    if (!slot) {
-        return res.status(400).json({ error: 'Slot fehlt' });
-    }
-
+    // --- 3. ZEITEN BERECHNEN UND SPEICHERN ---
     const now = new Date();
     const options = { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' };
     const parts = new Intl.DateTimeFormat('de-DE', options).formatToParts(now);
@@ -70,12 +83,12 @@ export default async function handler(req, res) {
             times: admin.firestore.FieldValue.arrayUnion(exactTime)
         }, { merge: true });
 
-        res.status(200).json({ 
+        return res.status(200).json({ 
             success: true, 
-            message: `${exactTime} Uhr erfolgreich eingetragen (oder war bereits vorhanden)!` 
+            message: `${exactTime} Uhr erfolgreich eingetragen!` 
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Datenbankfehler beim Speichern' });
+        console.error('Datenbank Error:', error);
+        return res.status(500).json({ error: 'Konnte nicht in die Datenbank schreiben.', details: error.message });
     }
 }
