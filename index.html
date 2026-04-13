@@ -60,7 +60,28 @@
         .save-btn:hover { background-color: var(--primary-hover); }
         .save-btn:disabled { background-color: #9CA3AF; cursor: not-allowed; }
         
-        .calendar-month { text-align: center; font-weight: bold; margin-bottom: 15px; font-size: 18px; }
+        /* Kalender Navigation */
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .calendar-nav-btn {
+            background: #E5E7EB;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .calendar-nav-btn:hover { background: #D1D5DB; }
+        .calendar-month { font-weight: bold; font-size: 18px; }
+
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
         .day-header { text-align: center; font-size: 12px; font-weight: bold; color: #6B7280; padding-bottom: 5px; }
         .calendar-cell {
@@ -96,7 +117,11 @@
     </div>
 
     <div id="view-kalender" class="view">
-        <div class="calendar-month" id="calendar-month-label"></div>
+        <div class="calendar-header">
+            <button class="calendar-nav-btn" id="prev-month">&lt;</button>
+            <div class="calendar-month" id="calendar-month-label"></div>
+            <button class="calendar-nav-btn" id="next-month">&gt;</button>
+        </div>
         <div class="calendar-grid" id="calendar-grid"></div>
         <div id="calendar-details" style="margin-top: 20px; padding: 10px; background: #F9FAFB; border-radius: 8px; display: none;">
             <h4 id="detail-date" style="margin-top:0;"></h4>
@@ -113,13 +138,7 @@
     // DEINE FIREBASE WEB-CONFIG HIER EINTRAGEN
     // ==========================================
     const firebaseConfig = {
-      apiKey: "AIzaSyBe3-PKYw76lcQ3RFoy7pQivl-6NtuIniI",
-      authDomain: "tanzkalender-e329d.firebaseapp.com",
-      projectId: "tanzkalender-e329d",
-      storageBucket: "tanzkalender-e329d.firebasestorage.app",
-      messagingSenderId: "539481767816",
-      appId: "1:539481767816:web:ba4782fa8a0c5346ec843d",
-      measurementId: "G-R2LDY6SWDZ"
+        // ... DEINE DATEN HIER ...
     };
 
     let app, db;
@@ -135,6 +154,9 @@
     const timesNormal = ["14:45", "16:00", "17:15", "18:30", "19:45", "21:00"];
     const timesSunday = ["14:00", "15:15", "16:30", "18:15", "19:00", "20:15"];
     let selectedTimes = new Set();
+    
+    // Status für die Kalender-Navigation
+    let currentDisplayDate = new Date();
 
     const dateInput = document.getElementById('date-input');
     const timesContainer = document.getElementById('times-container');
@@ -148,6 +170,15 @@
         const dd = String(today.getDate()).padStart(2, '0');
         dateInput.value = `${yyyy}-${mm}-${dd}`;
         renderTimeButtons();
+
+        // Event Listener für Kalender-Navigation
+        document.getElementById('prev-month').onclick = () => changeMonth(-1);
+        document.getElementById('next-month').onclick = () => changeMonth(1);
+    }
+
+    function changeMonth(delta) {
+        currentDisplayDate.setMonth(currentDisplayDate.getMonth() + delta);
+        loadCalendar();
     }
 
     async function renderTimeButtons() {
@@ -163,10 +194,7 @@
         const isWeekend = isSunday || isSaturday;
 
         let currentTimes = isSunday ? [...timesSunday] : [...timesNormal];
-        
-        if (isWeekend) {
-            currentTimes.push("Party");
-        }
+        if (isWeekend) currentTimes.push("Party");
 
         if (db) {
             try {
@@ -185,9 +213,7 @@
         currentTimes.forEach(time => {
             const btn = document.createElement('button');
             btn.className = 'time-btn';
-            
             if (selectedTimes.has(time)) btn.classList.add('selected');
-            
             btn.textContent = time;
             btn.onclick = () => toggleTime(time, btn);
             timesContainer.appendChild(btn);
@@ -236,7 +262,10 @@
         btnElement.classList.add('active');
         document.getElementById(`view-${tabId}`).classList.add('active');
 
-        if (tabId === 'kalender') loadCalendar();
+        if (tabId === 'kalender') {
+            currentDisplayDate = new Date(); // Reset auf aktuellen Monat beim Tab-Wechsel
+            loadCalendar();
+        }
         else if (tabId === 'eintragen') renderTimeButtons();
     }
 
@@ -249,13 +278,13 @@
 
         const sessionsData = {};
         try {
+            // Hinweis: Lädt aktuell alle Dokumente. Bei sehr vielen Daten sollte dies gefiltert werden.
             const querySnapshot = await getDocs(collection(db, "danceSessions"));
             querySnapshot.forEach((doc) => { sessionsData[doc.id] = doc.data().times; });
         } catch (e) { return; }
 
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
+        const year = currentDisplayDate.getFullYear();
+        const month = currentDisplayDate.getMonth();
         
         const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
         document.getElementById('calendar-month-label').textContent = `${monthNames[month]} ${year}`;
@@ -288,11 +317,7 @@
             if (sessionsData[dateStr] && sessionsData[dateStr].length > 0) {
                 let dailyCount = 0;
                 sessionsData[dateStr].forEach(time => {
-                    if (time === "Party") {
-                        dailyCount += 2;
-                    } else {
-                        dailyCount += 1;
-                    }
+                    dailyCount += (time === "Party" ? 2 : 1);
                 });
 
                 if (dailyCount > 0) {
@@ -304,7 +329,6 @@
                     cell.onclick = () => showDetails(dateStr, sessionsData[dateStr]);
                 }
             }
-
             grid.appendChild(cell);
         }
     }
@@ -313,22 +337,14 @@
         const detailsBox = document.getElementById('calendar-details');
         const title = document.getElementById('detail-date');
         const list = document.getElementById('detail-times');
-        
         const dateObj = new Date(dateStr);
         title.textContent = `Getanzt am: ${dateObj.toLocaleDateString('de-DE')}`;
-        
         list.innerHTML = '';
-        
         times.sort().forEach(time => {
             const li = document.createElement('li');
-            if (time === "Party") {
-                li.innerHTML = "<strong>Tanzparty</strong> (zählt 2x)";
-            } else {
-                li.textContent = time + " Uhr";
-            }
+            li.innerHTML = (time === "Party" ? "<strong>Tanzparty</strong> (zählt 2x)" : time + " Uhr");
             list.appendChild(li);
         });
-        
         detailsBox.style.display = 'block';
     }
 
