@@ -12,6 +12,8 @@
             --card-bg: #FFFFFF;
             --text: #1F2937;
             --border: #E5E7EB;
+            --google: #DB4437;
+            --google-hover: #C53929;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -36,14 +38,16 @@
             font-size: 16px; font-weight: 600; color: #6B7280; cursor: pointer; transition: color 0.2s;
         }
         .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        .nav button#nav-logout { color: #DC2626; font-size: 14px; flex: 0.5; }
+        
         .view { padding: 20px; display: none; }
         .view.active { display: block; }
         h2 { margin-top: 0; }
         
-        .date-selector { margin-bottom: 20px; }
-        input[type="date"] {
+        /* Formulare */
+        input[type="date"], input[type="email"], input[type="password"] {
             width: 100%; padding: 10px; border: 1px solid var(--border);
-            border-radius: 8px; font-size: 16px; box-sizing: border-box; font-family: inherit;
+            border-radius: 8px; font-size: 16px; box-sizing: border-box; font-family: inherit; margin-bottom: 15px;
         }
         .times-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .time-btn {
@@ -53,31 +57,24 @@
         .time-btn:hover { border-color: #A5B4FC; }
         .time-btn.selected { border-color: var(--primary); background-color: #EEF2FF; color: var(--primary); font-weight: bold; }
 
-        .save-btn {
+        .btn-primary {
             width: 100%; padding: 15px; background-color: var(--primary); color: white;
             border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s;
+            margin-bottom: 10px;
         }
-        .save-btn:hover { background-color: var(--primary-hover); }
-        .save-btn:disabled { background-color: #9CA3AF; cursor: not-allowed; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-primary:disabled { background-color: #9CA3AF; cursor: not-allowed; }
+
+        .btn-google {
+            background-color: var(--google);
+        }
+        .btn-google:hover { background-color: var(--google-hover); }
         
-        /* Kalender Navigation */
-        .calendar-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
+        /* Kalender */
+        .calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
         .calendar-nav-btn {
-            background: #E5E7EB;
-            border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
+            background: #E5E7EB; border: none; border-radius: 50%; width: 32px; height: 32px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold;
         }
         .calendar-nav-btn:hover { background: #D1D5DB; }
         .calendar-month { font-weight: bold; font-size: 18px; }
@@ -93,39 +90,63 @@
             font-size: 10px; background-color: var(--primary); color: white; border-radius: 50%;
             width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; position: absolute; bottom: 2px; right: 2px;
         }
-        #status-msg { margin-top: 10px; text-align: center; color: #059669; font-weight: bold; min-height: 20px; }
+        #status-msg, #login-error { margin-top: 10px; text-align: center; font-weight: bold; min-height: 20px; }
+        #status-msg { color: #059669; }
+        #login-error { color: #DC2626; }
         .loading-text { grid-column: 1 / -1; text-align: center; color: #6B7280; font-size: 14px; padding: 20px 0; }
+        
+        /* Toggle Container */
+        #main-app { display: none; }
+        
+        .divider { text-align: center; margin: 15px 0; color: #6B7280; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
-    <div class="nav">
-        <button id="nav-eintragen" class="active">Zeiten Eintragen</button>
-        <button id="nav-kalender">Mein Kalender</button>
+    <div id="login-view" class="view active">
+        <h2 style="text-align: center;">Login</h2>
+        
+        <button id="google-login-btn" class="btn-primary btn-google">Mit Google anmelden</button>
+        
+        <div class="divider">oder</div>
+
+        <input type="email" id="login-email" placeholder="E-Mail">
+        <input type="password" id="login-password" placeholder="Passwort">
+        <button id="login-btn" class="btn-primary">Anmelden</button>
+        
+        <div id="login-error"></div>
     </div>
 
-    <div id="view-eintragen" class="view active">
-        <h2>Wann warst du tanzen?</h2>
-        <div class="date-selector">
-            <label for="date-input" style="display:block; margin-bottom:5px; color:#6B7280; font-size:14px;">Datum (Standard ist heute):</label>
-            <input type="date" id="date-input">
+    <div id="main-app">
+        <div class="nav">
+            <button id="nav-eintragen" class="active">Eintragen</button>
+            <button id="nav-kalender">Kalender</button>
+            <button id="nav-logout">Logout</button>
         </div>
-        <div id="times-container" class="times-grid"></div>
-        <button id="save-btn" class="save-btn" disabled>Zeiten Speichern</button>
-        <div id="status-msg"></div>
-    </div>
 
-    <div id="view-kalender" class="view">
-        <div class="calendar-header">
-            <button class="calendar-nav-btn" id="prev-month">&lt;</button>
-            <div class="calendar-month" id="calendar-month-label"></div>
-            <button class="calendar-nav-btn" id="next-month">&gt;</button>
+        <div id="view-eintragen" class="view active">
+            <h2>Wann warst du tanzen?</h2>
+            <div class="date-selector">
+                <label for="date-input" style="display:block; margin-bottom:5px; color:#6B7280; font-size:14px;">Datum (Standard ist heute):</label>
+                <input type="date" id="date-input">
+            </div>
+            <div id="times-container" class="times-grid"></div>
+            <button id="save-btn" class="btn-primary" disabled>Zeiten Speichern</button>
+            <div id="status-msg"></div>
         </div>
-        <div class="calendar-grid" id="calendar-grid"></div>
-        <div id="calendar-details" style="margin-top: 20px; padding: 10px; background: #F9FAFB; border-radius: 8px; display: none;">
-            <h4 id="detail-date" style="margin-top:0;"></h4>
-            <ul id="detail-times" style="margin-bottom:0; padding-left: 20px;"></ul>
+
+        <div id="view-kalender" class="view">
+            <div class="calendar-header">
+                <button class="calendar-nav-btn" id="prev-month">&lt;</button>
+                <div class="calendar-month" id="calendar-month-label"></div>
+                <button class="calendar-nav-btn" id="next-month">&gt;</button>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+            <div id="calendar-details" style="margin-top: 20px; padding: 10px; background: #F9FAFB; border-radius: 8px; display: none;">
+                <h4 id="detail-date" style="margin-top:0;"></h4>
+                <ul id="detail-times" style="margin-bottom:0; padding-left: 20px;"></ul>
+            </div>
         </div>
     </div>
 </div>
@@ -133,10 +154,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-    // ==========================================
-    // DEINE FIREBASE WEB-CONFIG HIER EINTRAGEN
-    // ==========================================
     const firebaseConfig = {
       apiKey: "AIzaSyBe3-PKYw76lcQ3RFoy7pQivl-6NtuIniI",
       authDomain: "tanzkalender-e329d.firebaseapp.com",
@@ -147,11 +166,12 @@
       measurementId: "G-R2LDY6SWDZ"
     };
 
-    let app, db;
+    let app, db, auth;
     try {
         if(Object.keys(firebaseConfig).length > 0) {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
+            auth = getAuth(app); 
         }
     } catch (e) {
         console.error("Firebase Config fehlerhaft:", e);
@@ -160,8 +180,6 @@
     const timesNormal = ["14:45", "16:00", "17:15", "18:30", "19:45", "21:00"];
     const timesSunday = ["14:00", "15:15", "16:30", "18:15", "19:00", "20:15"];
     let selectedTimes = new Set();
-    
-    // Status für die Kalender-Navigation
     let currentDisplayDate = new Date();
 
     const dateInput = document.getElementById('date-input');
@@ -169,7 +187,62 @@
     const saveBtn = document.getElementById('save-btn');
     const statusMsg = document.getElementById('status-msg');
 
-    function init() {
+    const loginView = document.getElementById('login-view');
+    const mainApp = document.getElementById('main-app');
+    const loginBtn = document.getElementById('login-btn');
+    const googleLoginBtn = document.getElementById('google-login-btn');
+    const logoutBtn = document.getElementById('nav-logout');
+    const loginError = document.getElementById('login-error');
+
+    if(auth) {
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginView.classList.remove('active');
+                mainApp.style.display = 'block';
+                initApp(); 
+            } else {
+                mainApp.style.display = 'none';
+                loginView.classList.add('active');
+            }
+        });
+    }
+
+    // Google Login Logik
+    const provider = new GoogleAuthProvider();
+    googleLoginBtn.addEventListener('click', async () => {
+        loginError.textContent = "";
+        googleLoginBtn.disabled = true;
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error) {
+            loginError.textContent = "Fehler beim Google-Login.";
+            console.error(error);
+        } finally {
+            googleLoginBtn.disabled = false;
+        }
+    });
+
+    // Email/Password Login Logik
+    loginBtn.addEventListener('click', async () => {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        loginError.textContent = "";
+        loginBtn.disabled = true;
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+            loginError.textContent = "Fehler beim Login. Zugangsdaten prüfen.";
+        } finally {
+            loginBtn.disabled = false;
+        }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        signOut(auth);
+    });
+
+    function initApp() {
         const today = new Date();
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -177,7 +250,6 @@
         dateInput.value = `${yyyy}-${mm}-${dd}`;
         renderTimeButtons();
 
-        // Event Listener für Kalender-Navigation
         document.getElementById('prev-month').onclick = () => changeMonth(-1);
         document.getElementById('next-month').onclick = () => changeMonth(1);
     }
@@ -195,11 +267,9 @@
         const dateStr = dateInput.value;
         const selectedDate = new Date(dateStr);
         const dayOfWeek = selectedDate.getDay();
-        const isSunday = dayOfWeek === 0;
-        const isSaturday = dayOfWeek === 6;
-        const isWeekend = isSunday || isSaturday;
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-        let currentTimes = isSunday ? [...timesSunday] : [...timesNormal];
+        let currentTimes = dayOfWeek === 0 ? [...timesSunday] : [...timesNormal];
         if (isWeekend) currentTimes.push("Party");
 
         if (db) {
@@ -209,10 +279,9 @@
                 if (docSnap.exists() && docSnap.data().times) {
                     docSnap.data().times.forEach(time => selectedTimes.add(time));
                 }
-            } catch (e) {}
-        } else {
-            timesContainer.innerHTML = '<div class="loading-text" style="color: red;">Bitte Firebase Config eintragen!</div>';
-            return;
+            } catch (e) {
+                console.error("Lesefehler:", e);
+            }
         }
 
         timesContainer.innerHTML = '';
@@ -253,7 +322,7 @@
             setTimeout(() => { statusMsg.textContent = ""; }, 3000);
             renderTimeButtons();
         } catch (e) {
-            alert("Fehler beim Speichern.");
+            alert("Berechtigungsfehler beim Speichern. Stimmen deine Firestore-Regeln?");
         } finally {
             saveBtn.textContent = "Zeiten Speichern";
         }
@@ -263,13 +332,13 @@
     document.getElementById('nav-kalender').addEventListener('click', (e) => switchTab('kalender', e.target));
 
     function switchTab(tabId, btnElement) {
-        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav button:not(#nav-logout)').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.view:not(#login-view)').forEach(v => v.classList.remove('active'));
         btnElement.classList.add('active');
         document.getElementById(`view-${tabId}`).classList.add('active');
 
         if (tabId === 'kalender') {
-            currentDisplayDate = new Date(); // Reset auf aktuellen Monat beim Tab-Wechsel
+            currentDisplayDate = new Date();
             loadCalendar();
         }
         else if (tabId === 'eintragen') renderTimeButtons();
@@ -284,10 +353,12 @@
 
         const sessionsData = {};
         try {
-            // Hinweis: Lädt aktuell alle Dokumente. Bei sehr vielen Daten sollte dies gefiltert werden.
             const querySnapshot = await getDocs(collection(db, "danceSessions"));
             querySnapshot.forEach((doc) => { sessionsData[doc.id] = doc.data().times; });
-        } catch (e) { return; }
+        } catch (e) { 
+            grid.innerHTML = '<div class="loading-text" style="color:red;">Fehler beim Laden (Berechtigung?)</div>';
+            return; 
+        }
 
         const year = currentDisplayDate.getFullYear();
         const month = currentDisplayDate.getMonth();
@@ -353,8 +424,6 @@
         });
         detailsBox.style.display = 'block';
     }
-
-    setTimeout(init, 100);
 </script>
 </body>
 </html>
